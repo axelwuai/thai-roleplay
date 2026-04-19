@@ -1,0 +1,78 @@
+:root {
+  --bg: #f5f0e8;
+  --bg-strong: #efe5d7;
+  --surface: rgba(255, 252, 247, 0.94);
+  --surface-strong: #fffdf8;
+  --line: rgba(78, 95, 91, 0.14);
+  --text: #1f2a2c;
+  --text-soft: #5e6a69;
+  --brand: #1f7a68;
+  --brand-soft: #d9f0e9;
+  --accent: #e9aa7a;
+  --accent-soft: #fff1e5;
+  --shadow: 0 20px 60px rgba(79, 92, 90, 0.12);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --font-ui: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-thai: "Noto Sans Thai", "Thonburi", "Leelawadee UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color-scheme: light;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 34%),
+    radial-gradient(circle at top right, rgba(31, 122, 104, 0.08), transparent 28%),
+    linear-gradient(180deg, var(--bg) 0%, #f8f6f2 100%);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.display-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.thai-text {
+  font-family: var(--font-thai), var(--font-ui);
+}
+
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.soft-chip {
+  border: 1px solid rgba(31, 122, 104, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.page-shell {
+  margin: 0 auto;
+  width: min(1120px, calc(100% - 24px));
+}

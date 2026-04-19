@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="泰语开口练习">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff7ef" />
+      <stop offset="100%" stop-color="#d9f0e9" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="32" fill="url(#bg)" />
+  <path
+    d="M31 44c0-7.18 5.82-13 13-13h40c7.18 0 13 5.82 13 13v24c0 7.18-5.82 13-13 13H63l-18 16v-16H44c-7.18 0-13-5.82-13-13V44Z"
+    fill="#fffdf8"
+    stroke="#1f7a68"
+    stroke-width="6"
+    stroke-linejoin="round"
+  />
+  <path d="M50 51h28" stroke="#1f7a68" stroke-width="6" stroke-linecap="round" />
+  <path d="M50 63h18" stroke="#1f7a68" stroke-width="6" stroke-linecap="round" />
+  <path d="M87 41c8 6 12 13 12 23s-4 17-12 23" fill="none" stroke="#e9aa7a" stroke-width="6" stroke-linecap="round" />
+</svg>

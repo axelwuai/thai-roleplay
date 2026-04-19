@@ -1,0 +1,45 @@
+{
+  "name": "thai-speaking-coach",
+  "version": "0.1.0",
+  "description": "面向中文用户的 AI 泰语口语练习应用，支持场景角色扮演、练习记录保存与账号同步。",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "thai",
+    "language-learning",
+    "spoken-thai",
+    "ai-roleplay",
+    "nextjs",
+    "qwen"
+  ],
+  "dependencies": {
+    "next": "latest",
+    "openai": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "latest",
+    "@next/swc-wasm-nodejs": "16.2.4",
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  }
+}
