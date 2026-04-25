@@ -29,6 +29,10 @@ export function containsChinese(input: string) {
   return /[\u3400-\u9fff]/.test(input);
 }
 
+export function containsThai(input: string) {
+  return /[\u0E00-\u0E7F]/.test(input);
+}
+
 export function getScenarioStorageKey(scenario: string) {
   return `${SCENARIO_STORAGE_PREFIX}${encodeURIComponent(scenario.trim())}`;
 }

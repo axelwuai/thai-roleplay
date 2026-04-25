@@ -325,16 +325,27 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
   };
 
   if (message.role === "user") {
+    const userMessageHasThai = containsThaiCharacters(message.content);
+
     return (
       <>
         <div className="flex justify-end">
           <article className="max-w-[85%] rounded-[20px] rounded-br-md border border-[rgba(31,122,104,0.16)] bg-[var(--brand-soft)] px-4 py-3 text-sm leading-7 text-[var(--text)] sm:max-w-[72%]">
-            <p>{message.content}</p>
+            <div className="flex items-start gap-2">
+              <p className="flex-1 whitespace-pre-wrap">{message.content}</p>
+              {userMessageHasThai ? (
+                <SpeakerButton
+                  isActive={speakingKey === `${message.id}-user-thai`}
+                  onClick={() => playThai(message.content, `${message.id}-user-thai`)}
+                  label="播放你输入的这句泰语"
+                />
+              ) : null}
+            </div>
             {message.learnerTranslation ? (
               <div className="mt-3 rounded-[16px] bg-white/70 px-3 py-3 text-left text-[var(--text)]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--brand)]">
-                    你可以这样说
+                    {userMessageHasThai ? "你的这句泰语" : "你可以这样说"}
                   </p>
                   <SpeakerButton
                     isActive={speakingKey === `${message.id}-learner-translation`}
@@ -357,6 +368,9 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
                   : null}
                 <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
                   {message.learnerTranslation.romanization}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--text)]">
+                  {message.learnerTranslation.chinese}
                 </p>
               </div>
             ) : null}
@@ -495,7 +509,7 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
         <article className="max-w-[88%] rounded-[20px] rounded-bl-md border border-[var(--line)] bg-white px-4 py-4 sm:max-w-[78%]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-full bg-[rgba(217,240,233,0.7)] px-2.5 py-1 text-[11px] font-medium text-[var(--brand)]">
-              AI 角色扮演
+              AI 回复
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -520,12 +534,8 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
           </div>
 
           <div className="space-y-3">
-            {showThaiScript ? (
-              <section className="space-y-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium tracking-[0.16em] text-[var(--brand)]">泰文</p>
-                  <p className="text-xs text-[var(--text-soft)]">点击词汇查看释义与例句</p>
-                </div>
+            <section className="rounded-[18px] bg-[rgba(217,240,233,0.18)] px-4 py-4">
+              {showThaiScript ? (
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
                     {renderInteractiveThaiText({
@@ -534,33 +544,31 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
                       cachePrefix: `${message.id}-thai`,
                       className: "thai-text text-base font-semibold text-[var(--text)] sm:text-lg",
                     })}
+                    <p className="mt-2 text-xs text-[var(--text-soft)]">点泰文单词可查看释义</p>
                   </div>
                   <SpeakerButton
                     isActive={speakingKey === `${message.id}-thai`}
                     onClick={() => playThai(structured?.thai ?? "", `${message.id}-thai`)}
                   />
                 </div>
-              </section>
-            ) : null}
+              ) : (
+                <p className="text-xs text-[var(--text-soft)]">已切换为仅拼音模式</p>
+              )}
 
-            <section className="space-y-1">
-              <p className="text-xs font-medium tracking-[0.16em] text-[var(--brand)]">拼读</p>
-              <p className="text-sm font-medium tracking-[0.01em] text-[var(--text)] sm:text-base">
-                {structured?.romanization}
-              </p>
-            </section>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <section className="space-y-1">
+                  <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--brand)]">拼读</p>
+                  <p className="text-sm font-medium tracking-[0.01em] text-[var(--text)] sm:text-base">
+                    {structured?.romanization}
+                  </p>
+                </section>
 
-            <section className="space-y-1">
-              <p className="text-xs font-medium tracking-[0.16em] text-[var(--brand)]">中文</p>
-              <div className="flex items-start gap-2">
-                <p className="flex-1 text-sm leading-7 text-[var(--text)] sm:text-base">
-                  {structured?.chinese}
-                </p>
-                <SpeakerButton
-                  isActive={speakingKey === `${message.id}-thai`}
-                  onClick={() => playThai(structured?.thai ?? "", `${message.id}-thai`)}
-                  label="播放这句中文对应的泰语"
-                />
+                <section className="space-y-1">
+                  <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--brand)]">意思</p>
+                  <p className="text-sm leading-7 text-[var(--text)] sm:text-base">
+                    {structured?.chinese}
+                  </p>
+                </section>
               </div>
             </section>
 
@@ -573,11 +581,10 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
 
             {structured?.suggestedReply ? (
               <section className="rounded-[18px] border border-[rgba(31,122,104,0.12)] bg-[rgba(217,240,233,0.48)] px-4 py-4">
-                <p className="text-xs font-medium tracking-[0.16em] text-[var(--brand)]">建议回答</p>
+                <p className="text-xs font-medium tracking-[0.16em] text-[var(--brand)]">你可以回</p>
                 <div className="mt-3 space-y-3">
                   {showThaiScript ? (
                     <div className="space-y-1">
-                      <p className="text-xs text-[var(--text-soft)]">泰文</p>
                       <div className="flex items-start gap-2">
                         <div className="flex-1">
                           {renderInteractiveThaiText({
@@ -600,29 +607,19 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
                     </div>
                   ) : null}
 
-                  <div className="space-y-1">
-                    <p className="text-xs text-[var(--text-soft)]">拼读</p>
-                    <p className="text-sm font-medium text-[var(--text)]">
-                      {structured.suggestedReply.romanization}
-                    </p>
-                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--brand)]">拼读</p>
+                      <p className="text-sm font-medium text-[var(--text)]">
+                        {structured.suggestedReply.romanization}
+                      </p>
+                    </div>
 
-                  <div className="space-y-1">
-                    <p className="text-xs text-[var(--text-soft)]">中文</p>
-                    <div className="flex items-start gap-2">
-                      <p className="flex-1 text-sm leading-7 text-[var(--text)]">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium tracking-[0.14em] text-[var(--brand)]">意思</p>
+                      <p className="text-sm leading-7 text-[var(--text)]">
                         {structured.suggestedReply.chinese}
                       </p>
-                      <SpeakerButton
-                        isActive={speakingKey === `${message.id}-suggested-thai`}
-                        onClick={() =>
-                          playThai(
-                            structured.suggestedReply?.thai ?? "",
-                            `${message.id}-suggested-thai`,
-                          )
-                        }
-                        label="播放这句中文对应的泰语"
-                      />
                     </div>
                   </div>
                 </div>

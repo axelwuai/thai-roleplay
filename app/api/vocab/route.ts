@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getRequestAuthUser } from "@/lib/auth";
 import { createOpenAIClient, OPENAI_MODEL } from "@/lib/openai";
 
 export const runtime = "nodejs";
@@ -82,6 +83,17 @@ Extra rules:
 }
 
 export async function POST(request: NextRequest) {
+  const authUser = await getRequestAuthUser(request);
+
+  if (!authUser) {
+    return NextResponse.json(
+      {
+        error: "请先登录账号，再使用单词学习功能。",
+      },
+      { status: 401 },
+    );
+  }
+
   const requestApiKey =
     request.headers.get("x-ai-api-key")?.trim() || request.headers.get("x-openai-api-key")?.trim();
   const apiKey =

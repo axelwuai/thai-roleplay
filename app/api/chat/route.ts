@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getRequestAuthUser } from "@/lib/auth";
 import { createOpenAIClient, OPENAI_MODEL } from "@/lib/openai";
 import { buildSystemPrompt, buildTurnInstruction } from "@/lib/prompt";
-import { containsChinese, isHelpTrigger, isRepeatTrigger } from "@/lib/utils";
+import { containsChinese, containsThai, isHelpTrigger, isRepeatTrigger } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,6 +74,17 @@ const assistantStructuredMessageSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const authUser = await getRequestAuthUser(request);
+
+  if (!authUser) {
+    return NextResponse.json(
+      {
+        error: "请先登录账号，再开始 AI 对话练习。",
+      },
+      { status: 401 },
+    );
+  }
+
   const requestApiKey =
     request.headers.get("x-ai-api-key")?.trim() || request.headers.get("x-openai-api-key")?.trim();
   const apiKey =
@@ -98,7 +110,9 @@ export async function POST(request: NextRequest) {
     const helpTrigger = isHelpTrigger(normalizedUserMessage);
     const repeatTrigger = isRepeatTrigger(normalizedUserMessage);
     const shouldProvideLearnerTranslation =
-      normalizedUserMessage.length > 0 && containsChinese(normalizedUserMessage) && !helpTrigger;
+      normalizedUserMessage.length > 0 &&
+      (containsChinese(normalizedUserMessage) || containsThai(normalizedUserMessage)) &&
+      !helpTrigger;
 
     const response = await createOpenAIClient(apiKey).chat.completions.create({
       model: OPENAI_MODEL,

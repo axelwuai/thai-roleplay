@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { AuthUser } from "@/lib/types";
@@ -8,12 +8,30 @@ import { getOrCreatePracticeClientId } from "@/lib/utils";
 
 interface AuthControlsProps {
   clientId?: string;
+  allowClose?: boolean;
+  hideTrigger?: boolean;
   onAuthChange?: (user: AuthUser | null) => void;
+  openSignal?: number;
+  required?: boolean;
+  subtitle?: string;
+  title?: string;
+  triggerLabelWhenLoggedOut?: string;
 }
 
 type AuthMode = "login" | "register";
 
-export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
+export function AuthControls({
+  clientId,
+  allowClose = true,
+  hideTrigger = false,
+  onAuthChange,
+  openSignal,
+  required = false,
+  subtitle = "登录后，你的练习记录就能跟账号绑定，换设备也能继续练。",
+  title,
+  triggerLabelWhenLoggedOut = "登录同步",
+}: AuthControlsProps) {
+  const onAuthChangeRef = useRef(onAuthChange);
   const [resolvedClientId, setResolvedClientId] = useState(clientId ?? "");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -42,15 +60,21 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
   }, [clientId]);
 
   useEffect(() => {
+    onAuthChangeRef.current = onAuthChange;
+  }, [onAuthChange]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadCurrentUser = async () => {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = (await response.json()) as { user?: AuthUser | null };
+        const nextUser = data.user ?? null;
 
         if (!cancelled) {
-          setUser(data.user ?? null);
+          setUser(nextUser);
+          onAuthChangeRef.current?.(nextUser);
         }
       } catch (error) {
         console.error("[AuthControls] failed to load current user", error);
@@ -64,13 +88,29 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!openSignal || user) {
+      return;
+    }
+
+    setIsOpen(true);
+  }, [openSignal, user]);
+
+  useEffect(() => {
+    if (!required || !isMounted || user) {
+      return;
+    }
+
+    setIsOpen(true);
+  }, [isMounted, required, user]);
+
   const actionLabel = useMemo(() => {
     if (user) {
       return user.email;
     }
 
-    return "登录同步";
-  }, [user]);
+    return triggerLabelWhenLoggedOut;
+  }, [triggerLabelWhenLoggedOut, user]);
 
   const submitAuth = async () => {
     setIsSubmitting(true);
@@ -102,7 +142,7 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
       setPassword("");
       setErrorMessage("");
       setIsOpen(false);
-      onAuthChange?.(data.user);
+      onAuthChangeRef.current?.(data.user);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "暂时无法完成操作。");
     } finally {
@@ -120,7 +160,7 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
       });
 
       setUser(null);
-      onAuthChange?.(null);
+      onAuthChangeRef.current?.(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "退出登录失败。");
     } finally {
@@ -130,21 +170,23 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          if (user) {
-            void logout();
-            return;
-          }
+      {!hideTrigger ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (user) {
+              void logout();
+              return;
+            }
 
-          setIsOpen(true);
-        }}
-        disabled={isSubmitting}
-        className="inline-flex items-center rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[var(--text-soft)] transition hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {user ? `${actionLabel} · 退出` : actionLabel}
-      </button>
+            setIsOpen(true);
+          }}
+          disabled={isSubmitting}
+          className="inline-flex items-center rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[var(--text-soft)] transition hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {user ? `${actionLabel} · 退出` : actionLabel}
+        </button>
+      ) : null}
 
       {isOpen && isMounted
         ? createPortal(
@@ -156,19 +198,21 @@ export function AuthControls({ clientId, onAuthChange }: AuthControlsProps) {
                       Account
                     </p>
                     <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
-                      {mode === "login" ? "登录账号" : "创建账号"}
+                      {title ?? (mode === "login" ? "登录账号" : "创建账号")}
                     </h2>
                     <p className="mt-2 text-sm leading-7 text-[var(--text-soft)]">
-                      登录后，你的练习记录就能跟账号绑定，换设备也能继续练。
+                      {subtitle}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm text-[var(--text-soft)]"
-                  >
-                    关闭
-                  </button>
+                  {allowClose ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm text-[var(--text-soft)]"
+                    >
+                      关闭
+                    </button>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 flex rounded-full bg-[rgba(255,249,242,0.88)] p-1">

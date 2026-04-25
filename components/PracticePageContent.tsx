@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthControls } from "@/components/AuthControls";
 import { PracticePanel } from "@/components/PracticePanel";
 import { ScenarioHistoryPanel } from "@/components/ScenarioHistoryPanel";
-import type { ScenarioSession, ScenarioSessionSummary } from "@/lib/types";
+import type { AuthUser, ScenarioSession, ScenarioSessionSummary } from "@/lib/types";
 import {
   getOrCreatePracticeClientId,
   getPracticeDbMigrationKey,
@@ -21,13 +21,13 @@ export function PracticePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scenario = searchParams.get("scenario")?.trim() ?? "";
+  const [authUser, setAuthUser] = useState<AuthUser | null | undefined>(undefined);
   const [clientId, setClientId] = useState("");
-  const [authVersion, setAuthVersion] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<ScenarioSessionSummary[]>([]);
 
   const refreshSessionHistory = useCallback(async (activeClientId: string) => {
-    if (!activeClientId) {
+    if (!activeClientId || !authUser) {
       return;
     }
 
@@ -40,6 +40,10 @@ export function PracticePageContent() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setAuthUser(null);
+        }
+
         return;
       }
 
@@ -52,10 +56,10 @@ export function PracticePageContent() {
     } catch (error) {
       console.error("[PracticePageContent] failed to load session history", error);
     }
-  }, []);
+  }, [authUser]);
 
   const migrateLocalSessionsToDatabase = useCallback(async (activeClientId: string) => {
-    if (typeof window === "undefined" || !activeClientId) {
+    if (typeof window === "undefined" || !activeClientId || !authUser) {
       return;
     }
 
@@ -92,7 +96,7 @@ export function PracticePageContent() {
     } catch (error) {
       console.error("[PracticePageContent] failed to migrate local sessions", error);
     }
-  }, []);
+  }, [authUser]);
 
   const handleSessionChange = useCallback((nextSession: ScenarioSession) => {
     setSessionHistory((currentHistory) => {
@@ -103,13 +107,21 @@ export function PracticePageContent() {
     });
   }, []);
 
-  const handleAuthChange = useCallback(async () => {
-    setAuthVersion((current) => current + 1);
+  const handleAuthChange = useCallback(async (nextUser: AuthUser | null) => {
+    const authChanged = (authUser?.id ?? null) !== (nextUser?.id ?? null);
+    setAuthUser(nextUser);
 
-    if (clientId) {
+    if (!nextUser) {
+      setSessionHistory([]);
+      setIsSettingsOpen(false);
+      return;
+    }
+
+    if (clientId && authChanged) {
+      await migrateLocalSessionsToDatabase(clientId);
       await refreshSessionHistory(clientId);
     }
-  }, [clientId, refreshSessionHistory]);
+  }, [authUser?.id, clientId, migrateLocalSessionsToDatabase, refreshSessionHistory]);
 
   const handleSessionRename = useCallback(
     async (fromScenario: string, toScenario: string) => {
@@ -201,7 +213,34 @@ export function PracticePageContent() {
   }, []);
 
   useEffect(() => {
-    if (!clientId) {
+    let cancelled = false;
+
+    const loadCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const data = (await response.json()) as { user?: AuthUser | null };
+
+        if (!cancelled) {
+          setAuthUser(data.user ?? null);
+        }
+      } catch (error) {
+        console.error("[PracticePageContent] failed to load current user", error);
+
+        if (!cancelled) {
+          setAuthUser(null);
+        }
+      }
+    };
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!clientId || !authUser) {
       return;
     }
 
@@ -219,11 +258,72 @@ export function PracticePageContent() {
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, [clientId, migrateLocalSessionsToDatabase, refreshSessionHistory]);
+  }, [authUser, clientId, migrateLocalSessionsToDatabase, refreshSessionHistory]);
+
+  if (authUser === undefined) {
+    return (
+      <main className="min-h-[100dvh] overflow-x-hidden py-3 sm:py-4">
+        <div className="page-shell flex min-h-[calc(100dvh-1.5rem)] flex-col gap-3">
+          <div className="glass-card rounded-[24px] px-5 py-10 text-center text-[var(--text-soft)]">
+            正在确认账号状态...
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <main className="min-h-[100dvh] overflow-x-hidden py-3 sm:py-4">
+        <div className="page-shell flex flex-col gap-3">
+          <header className="glass-card flex items-center justify-between gap-4 rounded-[24px] px-4 py-3 sm:px-6">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-medium tracking-[0.14em] text-[var(--brand)] uppercase">
+                Thai Roleplay
+              </div>
+              <h1 className="text-lg font-semibold text-[var(--text)] sm:text-xl">登录后才能开始练习</h1>
+              <p className="text-sm text-[var(--text-soft)]">
+                首页可以浏览，但练习、记录和单词学习都只会绑定到已登录账号。
+              </p>
+            </div>
+
+            <Link
+              href="/"
+              className="inline-flex shrink-0 items-center rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[var(--text-soft)] transition hover:-translate-y-0.5 hover:bg-white"
+            >
+              回首页
+            </Link>
+          </header>
+
+          <section className="glass-card flex min-h-0 flex-1 items-center justify-center rounded-[var(--radius-xl)] px-6 py-12 text-center">
+            <div className="max-w-lg space-y-4">
+              <p className="text-sm uppercase tracking-[0.2em] text-[var(--brand)]">Account Required</p>
+              <h2 className="display-title text-3xl text-[var(--text)]">
+                先登录，再把每一次练习都记在你的账号下面。
+              </h2>
+              <p className="text-sm leading-7 text-[var(--text-soft)]">
+                这样你的场景历史、学习记录和后续连续学习都会以账号为准保存。当前版本先提供邮箱账号登录。
+              </p>
+            </div>
+          </section>
+
+          <AuthControls
+            allowClose={false}
+            clientId={clientId}
+            hideTrigger
+            onAuthChange={handleAuthChange}
+            required
+            subtitle="开始使用前请先登录。登录后，学习记录、场景历史和后续连续学习都会绑定到你的账号。当前版本先提供邮箱账号登录。"
+            title="登录后继续练习"
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-[100dvh] overflow-x-hidden py-3 sm:py-4">
-      <div className="page-shell flex flex-col gap-3">
+      <div className="page-shell flex min-h-[calc(100dvh-1.5rem)] flex-col gap-3">
         <header className="glass-card flex items-center justify-between gap-4 rounded-[24px] px-4 py-3 sm:px-6">
           <div className="min-w-0 space-y-1">
             <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-medium tracking-[0.14em] text-[var(--brand)] uppercase">
@@ -276,10 +376,10 @@ export function PracticePageContent() {
         </header>
 
         {scenario ? (
-          <section className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-            <div className="order-2 xl:order-1">
+          <section className="flex min-h-0 flex-1 flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+            <div className="order-1 min-h-0 xl:order-1">
               <PracticePanel
-                key={`${scenario}:${authVersion}`}
+                key={`${scenario}:${authUser.id}`}
                 clientId={clientId}
                 scenario={scenario}
                 isSettingsOpen={isSettingsOpen}
@@ -287,7 +387,7 @@ export function PracticePageContent() {
                 onSessionChange={handleSessionChange}
               />
             </div>
-            <div className="order-1 xl:order-2">
+            <div className="order-2 xl:order-2">
               <ScenarioHistoryPanel
                 currentScenario={scenario}
                 sessions={sessionHistory}

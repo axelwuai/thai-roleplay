@@ -35,29 +35,16 @@ const renameSessionSchema = z.object({
   toScenario: z.string().trim().min(1),
 });
 
-function getClientId(request: NextRequest) {
-  return request.headers.get("x-client-id")?.trim() ?? "";
-}
-
 async function resolvePracticeOwner(request: NextRequest) {
   const authUser = await getRequestAuthUser(request);
 
-  if (authUser) {
-    return {
-      type: "user" as const,
-      id: authUser.id,
-    };
-  }
-
-  const clientId = getClientId(request);
-
-  if (!clientId) {
+  if (!authUser) {
     return null;
   }
 
   return {
-    type: "client" as const,
-    id: clientId,
+    type: "user" as const,
+    id: authUser.id,
   };
 }
 
@@ -65,7 +52,7 @@ export async function GET(request: NextRequest) {
   const owner = await resolvePracticeOwner(request);
 
   if (!owner) {
-    return NextResponse.json({ error: "Missing client id." }, { status: 400 });
+    return NextResponse.json({ error: "请先登录账号，再查看你的学习记录。" }, { status: 401 });
   }
 
   const scenario = request.nextUrl.searchParams.get("scenario")?.trim();
@@ -85,7 +72,7 @@ export async function PUT(request: NextRequest) {
   const owner = await resolvePracticeOwner(request);
 
   if (!owner) {
-    return NextResponse.json({ error: "Missing client id." }, { status: 400 });
+    return NextResponse.json({ error: "请先登录账号，再保存你的学习记录。" }, { status: 401 });
   }
 
   try {
@@ -119,7 +106,7 @@ export async function PATCH(request: NextRequest) {
   const owner = await resolvePracticeOwner(request);
 
   if (!owner) {
-    return NextResponse.json({ error: "Missing client id." }, { status: 400 });
+    return NextResponse.json({ error: "请先登录账号，再管理你的场景记录。" }, { status: 401 });
   }
 
   try {
@@ -166,7 +153,7 @@ export async function DELETE(request: NextRequest) {
   const owner = await resolvePracticeOwner(request);
 
   if (!owner) {
-    return NextResponse.json({ error: "Missing client id." }, { status: 400 });
+    return NextResponse.json({ error: "请先登录账号，再管理你的场景记录。" }, { status: 401 });
   }
 
   const scenario = request.nextUrl.searchParams.get("scenario")?.trim();

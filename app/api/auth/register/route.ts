@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { AUTH_SESSION_COOKIE_NAME } from "@/lib/auth";
+import { AUTH_SESSION_COOKIE_NAME, shouldUseSecureAuthCookie } from "@/lib/auth";
 import {
   attachClientSessionsToUser,
   createAuthSession,
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       value: authSession.token,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: shouldUseSecureAuthCookie(),
       path: "/",
       expires: new Date(authSession.expiresAt),
     });

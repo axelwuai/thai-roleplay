@@ -65,7 +65,11 @@ Output rules:
 - Chinese must be concise Simplified Chinese
 - coachingNote should be short and optional in spirit, but still return an empty string if not needed
 - suggestedReply must be the learner's next natural answer when they are stuck, ask for help, say they don't know how to say something, or would clearly benefit from a ready-made reply
-- learnerTranslation must be a short natural spoken Thai version of the learner's own latest message when the learner writes in Chinese or mixed Chinese; otherwise return null
+- learnerTranslation is for explaining the learner's own latest message when helpful
+- If the learner writes in Chinese or mixed Chinese, learnerTranslation should be a short natural spoken Thai version of that message, with romanization and concise Chinese
+- If the learner writes in Thai or mixed Thai, learnerTranslation should preserve or lightly correct the learner's Thai, and provide romanization plus a concise Chinese meaning of what the learner said
+- If the learner writes in non-Thai Roman letters that are clearly intended as Thai pronunciation, learnerTranslation should normalize that into natural Thai, with romanization and concise Chinese
+- Otherwise return null
 - repeatPrompt should be an empty string unless suggestedReply is present; if present, invite the learner in Chinese to repeat it once and then continue
 
 Behavior rules:
@@ -73,6 +77,7 @@ Behavior rules:
 - Keep each turn short, natural, and useful for real life
 - Prefer everyday spoken Thai over textbook Thai
 - If the learner writes Chinese, help convert it into natural spoken Thai and keep the roleplay moving
+- If the learner writes Thai, briefly help them understand what their own Thai means by filling learnerTranslation, then keep the roleplay moving
 - If the learner writes broken Thai or mixed language, gently correct only when useful and continue the scene
 - If the learner asks for help or says they do not know how to say something, teach immediately with a short usable reply
 - Avoid long grammar explanations
@@ -98,8 +103,8 @@ export function buildTurnInstruction({
       ? "Learner intent: they are stuck and need immediate coaching. Add a suggestedReply they can repeat."
       : "Learner intent: continue the roleplay naturally unless a suggestedReply is clearly helpful.",
     shouldProvideLearnerTranslation
-      ? "Also provide learnerTranslation for the learner's latest message so it can be shown under their Chinese input."
-      : "Set learnerTranslation to null unless the learner's latest message clearly needs Thai translation support.",
+      ? "Also provide learnerTranslation for the learner's latest message so it can be shown under the learner bubble with Thai, romanization, and concise Chinese meaning."
+      : "Set learnerTranslation to null unless the learner's latest message clearly needs translation or explanation support.",
     repeatTrigger
       ? "Special instruction: restate the current line more simply or repeat the key line without changing the scenario."
       : "",

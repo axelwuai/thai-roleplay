@@ -1,4 +1,5 @@
 interface QuickActionsProps {
+  compact?: boolean;
   disabled?: boolean;
   onAction: (value: string) => void;
 }
@@ -10,6 +11,7 @@ const ACTIONS = [
 ] as const;
 
 export function QuickActions({
+  compact = false,
   disabled,
   onAction,
 }: QuickActionsProps) {
@@ -21,7 +23,9 @@ export function QuickActions({
           type="button"
           disabled={disabled}
           onClick={() => onAction(action)}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+          className={`rounded-full font-medium transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+            compact ? "px-3.5 py-1.5 text-xs sm:text-sm" : "px-4 py-2 text-sm"
+          } ${
             index === 0
               ? "border border-[rgba(31,122,104,0.14)] bg-[var(--brand-soft)] text-[var(--brand)] hover:border-[rgba(31,122,104,0.28)]"
               : "soft-chip text-[var(--text-soft)] hover:border-[rgba(31,122,104,0.24)] hover:text-[var(--brand)]"

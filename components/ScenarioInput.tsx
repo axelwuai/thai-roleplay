@@ -11,7 +11,12 @@ const EXAMPLE_SCENARIOS = [
   "买衣服试穿",
 ];
 
-export function ScenarioInput() {
+interface ScenarioInputProps {
+  isAuthenticated: boolean;
+  onRequireAuth: () => void;
+}
+
+export function ScenarioInput({ isAuthenticated, onRequireAuth }: ScenarioInputProps) {
   const router = useRouter();
   const [scenario, setScenario] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -20,6 +25,11 @@ export function ScenarioInput() {
     const nextScenario = value.trim();
 
     if (!nextScenario) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      onRequireAuth();
       return;
     }
 
@@ -39,6 +49,9 @@ export function ScenarioInput() {
           <p className="text-sm leading-7 text-[var(--text-soft)]">
             例如：去餐厅点菜、打车去机场、跟医生说肚子疼。
           </p>
+          <div className="rounded-[18px] border border-[rgba(31,122,104,0.12)] bg-[rgba(255,249,242,0.9)] px-4 py-3 text-sm leading-6 text-[var(--text-soft)]">
+            开始练习前需要先登录账号，这样每次学习记录、场景历史和后续记忆都会绑定到你的账号。
+          </div>
         </div>
 
         <form
@@ -63,7 +76,7 @@ export function ScenarioInput() {
             disabled={isPending}
             className="w-full rounded-[22px] bg-[var(--brand)] px-5 py-4 text-base font-medium text-white transition hover:-translate-y-0.5 hover:bg-[#166755] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isPending ? "正在进入练习..." : "开始练习"}
+            {isPending ? "正在进入练习..." : isAuthenticated ? "开始练习" : "先登录再开始练习"}
           </button>
         </form>
 

@@ -129,6 +129,85 @@ pnpm start
 - 单机部署
 - 单实例云服务器部署
 
+推荐部署形态：
+
+- Docker 单容器部署
+- Railway / Render / 云服务器上的单实例 Node 服务
+
+### Docker 部署
+
+1. 构建镜像
+
+```bash
+docker build -t thai-speaking-coach .
+```
+
+2. 启动容器
+
+```bash
+docker run -d \
+  --name thai-speaking-coach \
+  -p 3000:3000 \
+  -e DASHSCOPE_API_KEY=your_dashscope_api_key \
+  -e DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1 \
+  -e QWEN_MODEL=qwen-plus \
+  -v $(pwd)/data:/app/data \
+  thai-speaking-coach
+```
+
+说明：
+
+- `data` 目录需要挂载出来，否则 SQLite 数据不会持久保存
+- 生产环境下 cookie 会自动使用 `secure`
+- 发布前建议先本地执行 `npm run build`
+
+### 云服务器部署
+
+1. 把代码拉到服务器
+
+```bash
+git clone https://github.com/axelwuai/thai-roleplay.git
+cd thai-roleplay
+```
+
+2. 复制生产环境变量
+
+```bash
+cp .env.production.example .env.production
+```
+
+3. 编辑 `.env.production`
+
+至少需要填写：
+
+```bash
+DASHSCOPE_API_KEY=your_dashscope_api_key
+QWEN_MODEL=qwen-plus
+AUTH_COOKIE_SECURE=false
+```
+
+说明：
+
+- 如果你先用服务器 IP 和 `http` 调试，`AUTH_COOKIE_SECURE=false`
+- 如果你已经配好域名和 `https`，建议改成 `AUTH_COOKIE_SECURE=true`
+
+4. 启动服务
+
+```bash
+docker compose up -d --build
+```
+
+5. 查看状态
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+默认访问地址：
+
+- `http://你的服务器IP:3000`
+
 如果你要把它部署成多实例生产服务，建议把 SQLite 替换成真正的服务端数据库，例如 PostgreSQL，并补上：
 
 - 邮箱验证

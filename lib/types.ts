@@ -57,6 +57,17 @@ export interface ChatApiResponse {
   message: AssistantStructuredMessage;
 }
 
+export type AsrSpeechMode = "auto" | "zh" | "th";
+
+export type AsrDetectedLanguage = "zh" | "th" | "mixed" | "unknown";
+
+export interface AsrApiResponse {
+  transcript: string;
+  normalizedTranscript: string;
+  detectedLanguage: AsrDetectedLanguage;
+  speechMode: AsrSpeechMode;
+}
+
 export interface VocabularyExplanation {
   term: string;
   romanization: string;

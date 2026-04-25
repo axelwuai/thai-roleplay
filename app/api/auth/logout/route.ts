@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { AUTH_SESSION_COOKIE_NAME } from "@/lib/auth";
+import { AUTH_SESSION_COOKIE_NAME, shouldUseSecureAuthCookie } from "@/lib/auth";
 import { revokeAuthSession } from "@/lib/practice-store";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     value: "",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureAuthCookie(),
     path: "/",
     expires: new Date(0),
   });
