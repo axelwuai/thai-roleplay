@@ -283,6 +283,7 @@ export function PracticePageContent() {
                 clientId={clientId}
                 scenario={scenario}
                 isSettingsOpen={isSettingsOpen}
+                onCloseSettings={() => setIsSettingsOpen(false)}
                 onSessionChange={handleSessionChange}
               />
             </div>

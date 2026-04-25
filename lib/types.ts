@@ -56,3 +56,17 @@ export interface AuthSessionUser extends AuthUser {
 export interface ChatApiResponse {
   message: AssistantStructuredMessage;
 }
+
+export interface VocabularyExplanation {
+  term: string;
+  romanization: string;
+  chineseMeaning: string;
+  usage: string;
+  exampleThai: string;
+  exampleRomanization: string;
+  exampleChinese: string;
+}
+
+export interface VocabularyApiResponse {
+  explanation: VocabularyExplanation;
+}
