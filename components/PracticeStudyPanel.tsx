@@ -797,7 +797,7 @@ export function PracticeStudyPanel({ mode, scenario, session }: PracticeStudyPan
     const isVocabularyQuiz = mode === "vocabulary" && isFullscreen;
 
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex h-full flex-col gap-4">
         <div
           className={`flex flex-wrap items-center justify-between gap-3 rounded-[22px] px-4 py-3 shadow-[0_10px_24px_rgba(79,92,90,0.04)] ${
             isFullscreen ? "bg-white/82" : "bg-white/86"
@@ -839,7 +839,7 @@ export function PracticeStudyPanel({ mode, scenario, session }: PracticeStudyPan
         </div>
 
         <article
-          className={`glass-card flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[30px] border border-[rgba(31,122,104,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(252,248,242,0.98)_100%)] ${
+          className={`glass-card flex flex-1 flex-col rounded-[30px] border border-[rgba(31,122,104,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(252,248,242,0.98)_100%)] ${
             isFullscreen ? "px-6 py-6 sm:px-8 sm:py-8" : "px-5 py-5 sm:px-6 sm:py-6"
           }`}
         >
@@ -1321,7 +1321,7 @@ export function PracticeStudyPanel({ mode, scenario, session }: PracticeStudyPan
             </div>
           </aside>
 
-          <div className="min-h-0 p-4 sm:p-5">
+          <div className="p-4 sm:p-5">
             {activeCard ? (
               renderReviewCard()
             ) : (
@@ -1336,7 +1336,7 @@ export function PracticeStudyPanel({ mode, scenario, session }: PracticeStudyPan
       {isReviewModeOpen && isMounted && activeCard
         ? createPortal(
             <div className="fixed inset-0 z-[120] bg-[rgba(31,42,44,0.6)] p-3 sm:p-4">
-              <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col rounded-[34px] border border-[rgba(255,255,255,0.18)] bg-[rgba(245,240,232,0.97)] p-3 shadow-[0_24px_80px_rgba(16,24,24,0.28)] backdrop-blur sm:p-4">
+              <div className="mx-auto flex h-full w-full max-w-5xl flex-col rounded-[34px] border border-[rgba(255,255,255,0.18)] bg-[rgba(245,240,232,0.97)] p-3 shadow-[0_24px_80px_rgba(16,24,24,0.28)] backdrop-blur sm:p-4">
                 {renderReviewCard(true)}
               </div>
             </div>,
