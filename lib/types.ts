@@ -81,3 +81,77 @@ export interface VocabularyExplanation {
 export interface VocabularyApiResponse {
   explanation: VocabularyExplanation;
 }
+
+export type PracticeMode = "conversation" | "vocabulary" | "listening" | "speaking";
+
+export interface VocabularyNoteItem {
+  term: string;
+  romanization: string;
+  chineseMeaning: string;
+  usageNote: string;
+  sourceExcerpt: string;
+  sourceRomanization?: string;
+  sourceChinese?: string;
+  exampleThai: string;
+  exampleRomanization: string;
+  exampleChinese: string;
+}
+
+export interface VocabularyNotesMaterial {
+  title: string;
+  summary: string;
+  notes: VocabularyNoteItem[];
+  reviewTips: string[];
+}
+
+export interface ListeningReviewItem {
+  focus: string;
+  thai: string;
+  romanization: string;
+  question: string;
+  answer: string;
+  explanation: string;
+}
+
+export interface ListeningReviewMaterial {
+  title: string;
+  summary: string;
+  items: ListeningReviewItem[];
+}
+
+export interface SpeakingReviewDrill {
+  situation: string;
+  cue: string;
+  targetThai: string;
+  romanization: string;
+  coachingTip: string;
+}
+
+export interface SpeakingReviewMaterial {
+  title: string;
+  summary: string;
+  drills: SpeakingReviewDrill[];
+}
+
+export interface PracticeMaterialsApiResponse {
+  mode: Exclude<PracticeMode, "conversation">;
+  material: VocabularyNotesMaterial | ListeningReviewMaterial | SpeakingReviewMaterial;
+  favoriteCardIds?: string[];
+  cardMemories?: PracticeStudyCardMemory[];
+}
+
+export interface PracticeStudyCardMemory {
+  cardId: string;
+  isFavorite: boolean;
+  openCount: number;
+  audioPlayCount: number;
+  answerRevealCount: number;
+  reviewViewCount: number;
+  revisitCount: number;
+  totalFocusMs: number;
+  lastInteractedAt: string | null;
+  interestScore: number;
+  difficultyScore: number;
+  freshnessScore: number;
+  finalScore: number;
+}

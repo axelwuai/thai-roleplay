@@ -6,9 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { AuthControls } from "@/components/AuthControls";
 import { PracticePanel } from "@/components/PracticePanel";
+import { PracticeStudyPanel } from "@/components/PracticeStudyPanel";
 import { ScenarioHistoryPanel } from "@/components/ScenarioHistoryPanel";
-import type { AuthUser, ScenarioSession, ScenarioSessionSummary } from "@/lib/types";
+import type { AuthUser, PracticeMode, ScenarioSession, ScenarioSessionSummary } from "@/lib/types";
 import {
+  createScenarioSession,
   getOrCreatePracticeClientId,
   getPracticeDbMigrationKey,
   listStoredScenarioSessions,
@@ -25,6 +27,8 @@ export function PracticePageContent() {
   const [clientId, setClientId] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<ScenarioSessionSummary[]>([]);
+  const [currentSession, setCurrentSession] = useState<ScenarioSession | null>(null);
+  const [activeMode, setActiveMode] = useState<PracticeMode>("conversation");
 
   const refreshSessionHistory = useCallback(async (activeClientId: string) => {
     if (!activeClientId || !authUser) {
@@ -99,9 +103,15 @@ export function PracticePageContent() {
   }, [authUser]);
 
   const handleSessionChange = useCallback((nextSession: ScenarioSession) => {
+    setCurrentSession(nextSession);
     setSessionHistory((currentHistory) => {
+      const remaining = currentHistory.filter((item) => item.scenario !== nextSession.scenario);
+
+      if (nextSession.messages.length === 0) {
+        return remaining;
+      }
+
       const nextSummary = summarizeScenarioSession(nextSession);
-      const remaining = currentHistory.filter((item) => item.scenario !== nextSummary.scenario);
 
       return sortScenarioSessionsByUpdatedAt([nextSummary, ...remaining]);
     });
@@ -201,8 +211,55 @@ export function PracticePageContent() {
   const practiceStats = summarizePracticeStats(sessionHistory);
 
   useEffect(() => {
+    setActiveMode("conversation");
+    setCurrentSession(scenario ? createScenarioSession(scenario) : null);
     setIsSettingsOpen(false);
   }, [scenario]);
+
+  useEffect(() => {
+    if (!scenario || !clientId || !authUser) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadScenarioSession = async () => {
+      try {
+        const response = await fetch(`/api/sessions?scenario=${encodeURIComponent(scenario)}`, {
+          headers: {
+            "x-client-id": clientId,
+          },
+          cache: "no-store",
+        });
+
+        const data = (await response.json().catch(() => ({}))) as {
+          session?: ScenarioSession | null;
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        setCurrentSession(
+          data.session && data.session.scenario === scenario
+            ? data.session
+            : createScenarioSession(scenario),
+        );
+      } catch (error) {
+        console.error("[PracticePageContent] failed to load current scenario session", error);
+
+        if (!cancelled) {
+          setCurrentSession(createScenarioSession(scenario));
+        }
+      }
+    };
+
+    void loadScenarioSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, clientId, scenario]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -310,6 +367,7 @@ export function PracticePageContent() {
           <AuthControls
             allowClose={false}
             clientId={clientId}
+            embedded
             hideTrigger
             onAuthChange={handleAuthChange}
             required
@@ -341,13 +399,12 @@ export function PracticePageContent() {
 
           {scenario ? (
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden rounded-full border border-[var(--line)] bg-white/75 px-3 py-2 text-sm text-[var(--text-soft)] sm:block">
-                当前场景：{scenario}
-              </div>
               <AuthControls clientId={clientId} onAuthChange={handleAuthChange} />
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen((current) => !current)}
+                disabled={activeMode !== "conversation"}
+                title={activeMode === "conversation" ? "打开设置" : "请先切回场景对话再调整设置"}
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[var(--text-soft)] transition hover:-translate-y-0.5 hover:bg-white"
               >
                 设置
@@ -376,26 +433,73 @@ export function PracticePageContent() {
         </header>
 
         {scenario ? (
-          <section className="flex min-h-0 flex-1 flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+          <section
+            className={`flex min-h-0 flex-1 flex-col gap-3 ${
+              activeMode === "conversation"
+                ? "xl:grid xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start"
+                : ""
+            }`}
+          >
             <div className="order-1 min-h-0 xl:order-1">
-              <PracticePanel
-                key={`${scenario}:${authUser.id}`}
-                clientId={clientId}
-                scenario={scenario}
-                isSettingsOpen={isSettingsOpen}
-                onCloseSettings={() => setIsSettingsOpen(false)}
-                onSessionChange={handleSessionChange}
-              />
+              <div className="mb-3 flex flex-wrap gap-2">
+                {[
+                  { value: "conversation" as const, label: "场景对话" },
+                  { value: "vocabulary" as const, label: "词汇笔记" },
+                  { value: "listening" as const, label: "听力复习" },
+                  { value: "speaking" as const, label: "口语复习" },
+                ].map((modeOption) => {
+                  const isActive = activeMode === modeOption.value;
+
+                  return (
+                    <button
+                      key={modeOption.value}
+                      type="button"
+                      onClick={() => {
+                        setActiveMode(modeOption.value);
+                        if (modeOption.value !== "conversation") {
+                          setIsSettingsOpen(false);
+                        }
+                      }}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? "border border-[rgba(31,122,104,0.18)] bg-[var(--brand-soft)] text-[var(--brand)]"
+                          : "border border-[var(--line)] bg-white/86 text-[var(--text-soft)] hover:-translate-y-0.5 hover:bg-white"
+                      }`}
+                    >
+                      {modeOption.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeMode === "conversation" ? (
+                <PracticePanel
+                  key={`${scenario}:${authUser.id}`}
+                  clientId={clientId}
+                  scenario={scenario}
+                  isSettingsOpen={isSettingsOpen}
+                  onCloseSettings={() => setIsSettingsOpen(false)}
+                  onSessionChange={handleSessionChange}
+                />
+              ) : (
+                <PracticeStudyPanel
+                  mode={activeMode}
+                  scenario={scenario}
+                  session={currentSession}
+                />
+              )}
             </div>
-            <div className="order-2 xl:order-2">
-              <ScenarioHistoryPanel
-                currentScenario={scenario}
-                sessions={sessionHistory}
-                stats={practiceStats}
-                onDeleteSession={handleSessionDelete}
-                onRenameSession={handleSessionRename}
-              />
-            </div>
+            {activeMode === "conversation" ? (
+              <div className="order-2 xl:order-2">
+                <ScenarioHistoryPanel
+                  currentScenario={scenario}
+                  sessions={sessionHistory}
+                  stats={practiceStats}
+                  onDeleteSession={handleSessionDelete}
+                  onRenameSession={handleSessionRename}
+                />
+              </div>
+            ) : null}
           </section>
         ) : (
           <section className="glass-card flex min-h-0 flex-1 items-center justify-center rounded-[var(--radius-xl)] px-6 py-12 text-center">

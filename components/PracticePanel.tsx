@@ -20,6 +20,7 @@ import {
   createAssistantMessage,
   createScenarioSession,
   createUserMessage,
+  deleteUserMessageWithFollowingAssistant,
 } from "@/lib/utils";
 
 type SpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
@@ -124,10 +125,15 @@ export function PracticePanel({
   const startedScenarioRef = useRef<string | null>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const speechModeRef = useRef<AsrSpeechMode>("auto");
+  const detectedSpeechLanguageRef = useRef<AsrDetectedLanguage | null>(null);
+  const resolveRecognitionLanguageRef = useRef<(mode?: AsrSpeechMode) => string>(() => "zh-CN");
+  const finalizeSpeechTranscriptRef = useRef<(transcript: string) => Promise<void>>(async () => {});
   const baseInputBeforeRecordingRef = useRef("");
   const latestSpeechTranscriptRef = useRef("");
   const router = useRouter();
   const [isScenarioPending, startScenarioTransition] = useTransition();
+
+  detectedSpeechLanguageRef.current = detectedSpeechLanguage;
 
   useEffect(() => {
     setIsMounted(true);
@@ -147,7 +153,7 @@ export function PracticePanel({
 
     const recognition = new RecognitionConstructor();
 
-    recognition.lang = resolveRecognitionLanguage();
+    recognition.lang = resolveRecognitionLanguageRef.current();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
@@ -164,7 +170,7 @@ export function PracticePanel({
       setIsRecording(false);
 
       if (latestSpeechTranscriptRef.current.trim()) {
-        void finalizeSpeechTranscript(latestSpeechTranscriptRef.current);
+        void finalizeSpeechTranscriptRef.current(latestSpeechTranscriptRef.current);
       }
     };
     recognition.onerror = (event) => {
@@ -212,7 +218,7 @@ export function PracticePanel({
       recognition.abort();
       recognitionRef.current = null;
     };
-  }, [detectedSpeechLanguage, speechMode]);
+  }, []);
 
   useEffect(() => {
     setIsFocusModeOpen(false);
@@ -242,12 +248,14 @@ export function PracticePanel({
       return preferredLanguage;
     }
 
-    if (detectedSpeechLanguage === "th") {
+    if (detectedSpeechLanguageRef.current === "th") {
       return "th-TH";
     }
 
     return "zh-CN";
   };
+
+  resolveRecognitionLanguageRef.current = resolveRecognitionLanguage;
 
   const finalizeSpeechTranscript = async (transcript: string) => {
     const normalizedTranscript = transcript.trim();
@@ -290,6 +298,8 @@ export function PracticePanel({
       latestSpeechTranscriptRef.current = "";
     }
   };
+
+  finalizeSpeechTranscriptRef.current = finalizeSpeechTranscript;
 
   const formatAssistantError = (error: unknown) => {
     const fallbackMessage =
@@ -428,22 +438,65 @@ export function PracticePanel({
   }, [isHydrated, onSessionChange, scenario, session]);
 
   useEffect(() => {
-    if (!isHydrated || !clientId || session.scenario !== scenario || session.messages.length === 0) {
+    if (!isHydrated || !clientId || session.scenario !== scenario) {
       return;
     }
 
-    void fetch("/api/sessions", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-client-id": clientId,
-      },
-      body: JSON.stringify({
-        session,
-      }),
-    }).catch((error) => {
-      console.error("[PracticePanel] failed to save session", error);
-    });
+    const abortController = new AbortController();
+
+    const persistSession = async () => {
+      try {
+        if (session.messages.length === 0) {
+          const response = await fetch(
+            `/api/sessions?scenario=${encodeURIComponent(session.scenario)}`,
+            {
+              method: "DELETE",
+              headers: {
+                "x-client-id": clientId,
+              },
+              signal: abortController.signal,
+            },
+          );
+
+          if (!response.ok && response.status !== 404) {
+            throw new Error("failed to delete empty session");
+          }
+
+          return;
+        }
+
+        const response = await fetch("/api/sessions", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-client-id": clientId,
+          },
+          body: JSON.stringify({
+            session,
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("failed to save session");
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === "AbortError" || error.message === "The user aborted a request.")
+        ) {
+          return;
+        }
+
+        console.error("[PracticePanel] failed to persist session", error);
+      }
+    };
+
+    void persistSession();
+
+    return () => {
+      abortController.abort();
+    };
   }, [clientId, isHydrated, scenario, session]);
 
   useEffect(() => {
@@ -509,6 +562,35 @@ export function PracticePanel({
       historyForApi: session.messages,
       nextHistory,
     });
+  };
+
+  const deleteUserTurn = (messageId: string) => {
+    if (isLoading) {
+      return;
+    }
+
+    const confirmed = window.confirm("确定删除这句吗？它后面的 AI 回复也会一起删除。");
+
+    if (!confirmed) {
+      return;
+    }
+
+    const nextMessages = deleteUserMessageWithFollowingAssistant(session.messages, messageId);
+
+    if (nextMessages.length === session.messages.length) {
+      return;
+    }
+
+    if (nextMessages.length === 0) {
+      startedScenarioRef.current = `${scenario}::${apiKey.trim() || "__server__"}`;
+    }
+
+    setErrorMessage("");
+    setSession((currentSession) => ({
+      ...currentSession,
+      messages: deleteUserMessageWithFollowingAssistant(currentSession.messages, messageId),
+      updatedAt: new Date().toISOString(),
+    }));
   };
 
   const toggleThaiScript = () => {
@@ -749,7 +831,9 @@ export function PracticePanel({
             isLoading={isLoading}
             showThaiScript={session.showThaiScript}
             contentPaddingBottomClassName=""
+            deleteMessageDisabled={!isHydrated || isLoading}
             quickActionsDisabled={!isHydrated || isLoading}
+            onDeleteUserMessage={deleteUserTurn}
             onQuickAction={(value) => {
               void sendUserMessage(value);
             }}
@@ -1002,8 +1086,10 @@ export function PracticePanel({
                     isLoading={isLoading}
                     showThaiScript={session.showThaiScript}
                     contentPaddingBottomClassName="pb-36 sm:pb-40"
+                    deleteMessageDisabled={!isHydrated || isLoading}
                     quickActionsDisabled={!isHydrated || isLoading}
                     isFullscreen
+                    onDeleteUserMessage={deleteUserTurn}
                     onQuickAction={(value) => {
                       void sendUserMessage(value);
                     }}

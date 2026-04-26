@@ -140,6 +140,33 @@ export function attachLearnerTranslation(
   return messages;
 }
 
+export function deleteUserMessageWithFollowingAssistant(
+  messages: ChatMessage[],
+  userMessageId: string,
+) {
+  const targetIndex = messages.findIndex(
+    (message) => message.id === userMessageId && message.role === "user",
+  );
+
+  if (targetIndex === -1) {
+    return messages;
+  }
+
+  const shouldDeleteAssistant = messages[targetIndex + 1]?.role === "assistant";
+
+  return messages.filter((_, index) => {
+    if (index === targetIndex) {
+      return false;
+    }
+
+    if (shouldDeleteAssistant && index === targetIndex + 1) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 export function parseScenarioSession(rawValue: string | null) {
   if (!rawValue) {
     return null;

@@ -9,6 +9,8 @@ import { AI_KEY_STORAGE_KEY } from "@/lib/utils";
 interface MessageBubbleProps {
   message: ChatMessage;
   showThaiScript: boolean;
+  deleteDisabled?: boolean;
+  onDelete?: () => void;
 }
 
 interface SpeakerButtonProps {
@@ -87,7 +89,12 @@ function segmentThaiText(text: string): ThaiSegment[] {
     }));
 }
 
-export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  showThaiScript,
+  deleteDisabled = false,
+  onDelete,
+}: MessageBubbleProps) {
   const [copyLabel, setCopyLabel] = useState("复制");
   const [speakingKey, setSpeakingKey] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState("");
@@ -331,6 +338,22 @@ export function MessageBubble({ message, showThaiScript }: MessageBubbleProps) {
       <>
         <div className="flex justify-end">
           <article className="max-w-[85%] rounded-[20px] rounded-br-md border border-[rgba(31,122,104,0.16)] bg-[var(--brand-soft)] px-4 py-3 text-sm leading-7 text-[var(--text)] sm:max-w-[72%]">
+            {onDelete ? (
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete();
+                  }}
+                  disabled={deleteDisabled}
+                  title="删除这句和后面的 AI 回复"
+                  className="rounded-full border border-[rgba(31,122,104,0.12)] bg-white/72 px-3 py-1 text-[11px] font-medium text-[var(--text-soft)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  删除这轮
+                </button>
+              </div>
+            ) : null}
             <div className="flex items-start gap-2">
               <p className="flex-1 whitespace-pre-wrap">{message.content}</p>
               {userMessageHasThai ? (

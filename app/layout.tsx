@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-scroll-behavior="smooth">
       <body>
-        <Script src="https://cdn.tailwindcss.com" strategy="beforeInteractive" />
+        <Script src="/tailwindcdn.js" strategy="beforeInteractive" />
         {children}
       </body>
     </html>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import type { AuthUser } from "@/lib/types";
 import { getOrCreatePracticeClientId } from "@/lib/utils";
@@ -9,6 +8,7 @@ import { getOrCreatePracticeClientId } from "@/lib/utils";
 interface AuthControlsProps {
   clientId?: string;
   allowClose?: boolean;
+  embedded?: boolean;
   hideTrigger?: boolean;
   onAuthChange?: (user: AuthUser | null) => void;
   openSignal?: number;
@@ -23,6 +23,7 @@ type AuthMode = "login" | "register";
 export function AuthControls({
   clientId,
   allowClose = true,
+  embedded = false,
   hideTrigger = false,
   onAuthChange,
   openSignal,
@@ -112,6 +113,8 @@ export function AuthControls({
     return triggerLabelWhenLoggedOut;
   }, [triggerLabelWhenLoggedOut, user]);
 
+  const shouldRenderEmbeddedCard = embedded && !user;
+
   const submitAuth = async () => {
     setIsSubmitting(true);
     setErrorMessage("");
@@ -170,7 +173,7 @@ export function AuthControls({
 
   return (
     <>
-      {!hideTrigger ? (
+      {!hideTrigger && !shouldRenderEmbeddedCard ? (
         <button
           type="button"
           onClick={() => {
@@ -188,105 +191,180 @@ export function AuthControls({
         </button>
       ) : null}
 
-      {isOpen && isMounted
-        ? createPortal(
-            <div className="fixed inset-0 z-[100] overflow-y-auto bg-[rgba(31,42,44,0.28)] px-4 py-6 sm:flex sm:items-center sm:justify-center sm:py-8">
-              <div className="glass-card mx-auto w-full max-w-md max-h-[calc(100dvh-48px)] overflow-y-auto rounded-[28px] px-5 py-5 sm:my-auto sm:px-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-medium tracking-[0.16em] text-[var(--brand)] uppercase">
-                      Account
-                    </p>
-                    <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
-                      {title ?? (mode === "login" ? "登录账号" : "创建账号")}
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-[var(--text-soft)]">
-                      {subtitle}
-                    </p>
-                  </div>
-                  {allowClose ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsOpen(false)}
-                      className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm text-[var(--text-soft)]"
-                    >
-                      关闭
-                    </button>
-                  ) : null}
-                </div>
+      {shouldRenderEmbeddedCard ? (
+        <div className="glass-card w-full rounded-[28px] px-5 py-5 sm:px-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-medium tracking-[0.16em] text-[var(--brand)] uppercase">
+                Account
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
+                {title ?? (mode === "login" ? "登录账号" : "创建账号")}
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-[var(--text-soft)]">{subtitle}</p>
+            </div>
+          </div>
 
-                <div className="mt-5 flex rounded-full bg-[rgba(255,249,242,0.88)] p-1">
-                  {(["login", "register"] as const).map((nextMode) => (
-                    <button
-                      key={nextMode}
-                      type="button"
-                      onClick={() => {
-                        setMode(nextMode);
-                        setErrorMessage("");
-                      }}
-                      className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition ${
-                        mode === nextMode
-                          ? "bg-[var(--brand)] text-white"
-                          : "text-[var(--text-soft)]"
-                      }`}
-                    >
-                      {nextMode === "login" ? "登录" : "注册"}
-                    </button>
-                  ))}
-                </div>
+          <div className="mt-5 flex rounded-full bg-[rgba(255,249,242,0.88)] p-1">
+            {(["login", "register"] as const).map((nextMode) => (
+              <button
+                key={nextMode}
+                type="button"
+                onClick={() => {
+                  setMode(nextMode);
+                  setErrorMessage("");
+                }}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition ${
+                  mode === nextMode ? "bg-[var(--brand)] text-white" : "text-[var(--text-soft)]"
+                }`}
+              >
+                {nextMode === "login" ? "登录" : "注册"}
+              </button>
+            ))}
+          </div>
 
-                <form
-                  className="mt-5 space-y-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void submitAuth();
-                  }}
-                >
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[var(--text)]">邮箱</span>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
-                    />
-                  </label>
+          <form
+            className="mt-5 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitAuth();
+            }}
+          >
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-[var(--text)]">邮箱</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
+              />
+            </label>
 
-                  <label className="block space-y-2">
-                    <span className="text-sm font-medium text-[var(--text)]">密码</span>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="至少 6 位"
-                      className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
-                    />
-                  </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-medium text-[var(--text)]">密码</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="至少 6 位"
+                className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
+              />
+            </label>
 
-                  {errorMessage ? (
-                    <div className="rounded-[18px] border border-[rgba(220,104,72,0.2)] bg-[rgba(255,241,235,0.9)] px-4 py-3 text-sm text-[#a54d2c]">
-                      {errorMessage}
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !email.trim() || password.trim().length < 6}
-                    className="w-full rounded-[18px] bg-[var(--brand)] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-[#166755] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isSubmitting
-                      ? "处理中..."
-                      : mode === "login"
-                        ? "登录并同步练习记录"
-                        : "创建账号并同步练习记录"}
-                  </button>
-                </form>
+            {errorMessage ? (
+              <div className="rounded-[18px] border border-[rgba(220,104,72,0.2)] bg-[rgba(255,241,235,0.9)] px-4 py-3 text-sm text-[#a54d2c]">
+                {errorMessage}
               </div>
-            </div>,
-            document.body,
-          )
-        : null}
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSubmitting || !email.trim() || password.trim().length < 6}
+              className="w-full rounded-[18px] bg-[var(--brand)] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-[#166755] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmitting
+                ? "处理中..."
+                : mode === "login"
+                  ? "登录并同步练习记录"
+                  : "创建账号并同步练习记录"}
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {isOpen && isMounted && !shouldRenderEmbeddedCard ? (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-[rgba(31,42,44,0.28)] px-4 py-6 sm:flex sm:items-center sm:justify-center sm:py-8">
+          <div className="glass-card mx-auto w-full max-w-md max-h-[calc(100dvh-48px)] overflow-y-auto rounded-[28px] px-5 py-5 sm:my-auto sm:px-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-medium tracking-[0.16em] text-[var(--brand)] uppercase">
+                  Account
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-[var(--text)]">
+                  {title ?? (mode === "login" ? "登录账号" : "创建账号")}
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-[var(--text-soft)]">{subtitle}</p>
+              </div>
+              {allowClose ? (
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm text-[var(--text-soft)]"
+                >
+                  关闭
+                </button>
+              ) : null}
+            </div>
+
+            <div className="mt-5 flex rounded-full bg-[rgba(255,249,242,0.88)] p-1">
+              {(["login", "register"] as const).map((nextMode) => (
+                <button
+                  key={nextMode}
+                  type="button"
+                  onClick={() => {
+                    setMode(nextMode);
+                    setErrorMessage("");
+                  }}
+                  className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition ${
+                    mode === nextMode ? "bg-[var(--brand)] text-white" : "text-[var(--text-soft)]"
+                  }`}
+                >
+                  {nextMode === "login" ? "登录" : "注册"}
+                </button>
+              ))}
+            </div>
+
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitAuth();
+              }}
+            >
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-[var(--text)]">邮箱</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
+                />
+              </label>
+
+              <label className="block space-y-2">
+                <span className="text-sm font-medium text-[var(--text)]">密码</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="至少 6 位"
+                  className="w-full rounded-[18px] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
+                />
+              </label>
+
+              {errorMessage ? (
+                <div className="rounded-[18px] border border-[rgba(220,104,72,0.2)] bg-[rgba(255,241,235,0.9)] px-4 py-3 text-sm text-[#a54d2c]">
+                  {errorMessage}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting || !email.trim() || password.trim().length < 6}
+                className="w-full rounded-[18px] bg-[var(--brand)] px-5 py-3 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-[#166755] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting
+                  ? "处理中..."
+                  : mode === "login"
+                    ? "登录并同步练习记录"
+                    : "创建账号并同步练习记录"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

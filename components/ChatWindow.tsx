@@ -11,8 +11,10 @@ interface ChatWindowProps {
   isLoading: boolean;
   showThaiScript: boolean;
   contentPaddingBottomClassName?: string;
+  deleteMessageDisabled?: boolean;
   quickActionsDisabled?: boolean;
   isFullscreen?: boolean;
+  onDeleteUserMessage?: (messageId: string) => void;
   onQuickAction?: (value: string) => void;
   onOpenFocusMode?: () => void;
 }
@@ -22,8 +24,10 @@ export function ChatWindow({
   isLoading,
   showThaiScript,
   contentPaddingBottomClassName = "",
+  deleteMessageDisabled = false,
   quickActionsDisabled = false,
   isFullscreen = false,
+  onDeleteUserMessage,
   onQuickAction,
   onOpenFocusMode,
 }: ChatWindowProps) {
@@ -69,6 +73,12 @@ export function ChatWindow({
             key={message.id}
             message={message}
             showThaiScript={showThaiScript}
+            deleteDisabled={deleteMessageDisabled}
+            onDelete={
+              message.role === "user" && onDeleteUserMessage
+                ? () => onDeleteUserMessage(message.id)
+                : undefined
+            }
           />
         ))}
 

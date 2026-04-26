@@ -27,13 +27,7 @@ export function HomePageContent() {
           title="像真实场景一样，马上开口练泰语"
           subtitle="输入一个生活场景，AI 立刻进入角色扮演。你可以用中文、简单泰语、拼音式泰语或混合表达，它会带着你把对话说下去。"
           actionSlot={
-            <AuthControls
-              onAuthChange={handleAuthChange}
-              openSignal={authPromptSignal}
-              subtitle="为了把练习记录、学习历史和后续记忆持续绑定到你的账号，开始使用前请先登录。当前版本先提供邮箱账号登录。"
-              title="登录后开始练习"
-              triggerLabelWhenLoggedOut="登录账号"
-            />
+            user ? <AuthControls onAuthChange={handleAuthChange} triggerLabelWhenLoggedOut="登录账号" /> : null
           }
         />
 
@@ -74,7 +68,20 @@ export function HomePageContent() {
             </div>
           </div>
 
-          <ScenarioInput isAuthenticated={Boolean(user)} onRequireAuth={requireAuth} />
+          <div className="space-y-4">
+            {!user ? (
+              <AuthControls
+                embedded
+                hideTrigger
+                onAuthChange={handleAuthChange}
+                openSignal={authPromptSignal}
+                subtitle="为了把练习记录、学习历史和后续记忆持续绑定到你的账号，开始使用前请先登录。当前版本先提供邮箱账号登录。"
+                title="登录后开始练习"
+              />
+            ) : null}
+
+            <ScenarioInput isAuthenticated={Boolean(user)} onRequireAuth={requireAuth} />
+          </div>
         </section>
       </div>
     </main>

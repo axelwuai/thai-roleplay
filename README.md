@@ -18,6 +18,10 @@
 - 每条 AI 回复都包含：泰文、罗马音、中文、可选教练提示
 - 支持隐藏泰文，只看罗马音和中文
 - 泰文和中文后面都有小喇叭，点击可播放对应泰语
+- 练习页支持四种模式切换：场景对话 / 词汇笔记 / 听力复习 / 口语复习
+- 词汇笔记会从当前场景对话里自动提炼高频词和短语
+- 听力复习会把刚才的对话拆成可回放的小段练习
+- 口语复习会把这段对话总结成几条可重复开口的关键句
 - 真实 SQLite 持久化保存练习会话
 - 邮箱注册 / 登录，登录后会把设备内练习记录并入账号
 - 右侧场景记录面板可回到旧场景继续练
@@ -113,6 +117,7 @@ pnpm start
 核心接口：
 
 - `POST /api/chat`
+- `POST /api/practice-materials`
 - `GET /api/sessions`
 - `GET /api/sessions?scenario=...`
 - `PUT /api/sessions`
@@ -220,6 +225,7 @@ docker compose logs -f
 app/
   api/auth/*
   api/chat/route.ts
+  api/practice-materials/route.ts
   api/sessions/route.ts
   icon.svg
   layout.tsx
@@ -234,6 +240,7 @@ components/
   MessageBubble.tsx
   PracticePageContent.tsx
   PracticePanel.tsx
+  PracticeStudyPanel.tsx
   QuickActions.tsx
   ScenarioHistoryPanel.tsx
   ScenarioInput.tsx
