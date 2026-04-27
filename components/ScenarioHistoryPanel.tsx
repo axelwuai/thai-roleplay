@@ -9,6 +9,7 @@ interface ScenarioHistoryPanelProps {
   currentScenario: string;
   sessions: ScenarioSessionSummary[];
   stats: PracticeStats;
+  onCreateSession?: (scenario: string) => Promise<void>;
   onDeleteSession?: (scenario: string) => Promise<void>;
   onRenameSession?: (fromScenario: string, toScenario: string) => Promise<void>;
 }
@@ -42,10 +43,13 @@ export function ScenarioHistoryPanel({
   currentScenario,
   sessions,
   stats,
+  onCreateSession,
   onDeleteSession,
   onRenameSession,
 }: ScenarioHistoryPanelProps) {
   const [editingScenario, setEditingScenario] = useState<string | null>(null);
+  const [isCreatingScenario, setIsCreatingScenario] = useState(false);
+  const [newScenarioName, setNewScenarioName] = useState("");
   const [draftName, setDraftName] = useState("");
   const [pendingScenario, setPendingScenario] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -58,6 +62,32 @@ export function ScenarioHistoryPanel({
   }, [editingScenario, sessions]);
 
   const latestPracticeLabel = stats.latestUpdatedAt ? formatUpdatedAt(stats.latestUpdatedAt) : "还没开始";
+
+  const submitCreateScenario = async () => {
+    const nextScenario = newScenarioName.trim();
+
+    if (!nextScenario) {
+      setErrorMessage("请输入一个新的场景名称。");
+      return;
+    }
+
+    if (!onCreateSession) {
+      return;
+    }
+
+    setPendingScenario("__create__");
+    setErrorMessage("");
+
+    try {
+      await onCreateSession(nextScenario);
+      setIsCreatingScenario(false);
+      setNewScenarioName("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "暂时无法进入这个新场景。");
+    } finally {
+      setPendingScenario(null);
+    }
+  };
 
   const startRename = (scenario: string) => {
     setEditingScenario(scenario);
@@ -131,6 +161,65 @@ export function ScenarioHistoryPanel({
         <p className="mt-1 text-sm text-[var(--text-soft)]">
           点一下就回到那段场景，继续练下去。
         </p>
+
+        <div className="mt-4">
+          {isCreatingScenario ? (
+            <div className="rounded-[18px] border border-[rgba(31,122,104,0.12)] bg-white/82 p-3">
+              <label className="block space-y-2">
+                <span className="text-xs font-medium tracking-[0.14em] text-[var(--brand)] uppercase">
+                  新增场景对话
+                </span>
+                <input
+                  type="text"
+                  value={newScenarioName}
+                  onChange={(event) => setNewScenarioName(event.target.value)}
+                  placeholder="比如：在便利店买水 / 去前台办理入住"
+                  disabled={pendingScenario === "__create__"}
+                  className="w-full rounded-[16px] border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[rgba(31,122,104,0.4)] focus:ring-4 focus:ring-[rgba(31,122,104,0.08)]"
+                />
+              </label>
+              <p className="mt-2 text-xs leading-6 text-[var(--text-soft)]">
+                输入一个新场景名就能开始；如果名字已存在，会直接打开原来的对话。
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void submitCreateScenario();
+                  }}
+                  disabled={pendingScenario === "__create__"}
+                  className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#166755] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {pendingScenario === "__create__" ? "正在进入..." : "开始新对话"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingScenario(false);
+                    setNewScenarioName("");
+                    setErrorMessage("");
+                  }}
+                  disabled={pendingScenario === "__create__"}
+                  className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--text-soft)] transition hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreatingScenario(true);
+                setNewScenarioName("");
+                setErrorMessage("");
+              }}
+              className="inline-flex w-full items-center justify-center rounded-[18px] border border-dashed border-[rgba(31,122,104,0.2)] bg-white/84 px-4 py-3 text-sm font-medium text-[var(--brand)] transition hover:-translate-y-0.5 hover:bg-white"
+            >
+              新增场景对话
+            </button>
+          )}
+        </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-[18px] bg-white/80 px-3 py-3">

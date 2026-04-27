@@ -208,6 +208,21 @@ export function PracticePageContent() {
     [clientId, refreshSessionHistory, router, scenario, sessionHistory],
   );
 
+  const handleCreateSession = useCallback(
+    async (nextScenarioName: string) => {
+      const nextScenario = nextScenarioName.trim();
+
+      if (!nextScenario) {
+        throw new Error("请输入一个新的场景名称。");
+      }
+
+      setActiveMode("conversation");
+      setIsSettingsOpen(false);
+      router.push(`/practice?scenario=${encodeURIComponent(nextScenario)}`);
+    },
+    [router],
+  );
+
   const practiceStats = summarizePracticeStats(sessionHistory);
 
   useEffect(() => {
@@ -495,6 +510,7 @@ export function PracticePageContent() {
                   currentScenario={scenario}
                   sessions={sessionHistory}
                   stats={practiceStats}
+                  onCreateSession={handleCreateSession}
                   onDeleteSession={handleSessionDelete}
                   onRenameSession={handleSessionRename}
                 />
